@@ -6,18 +6,12 @@ import nibabel as nib
 import numpy as np  
 from tqdm import tqdm
 
-# ## pass the hyperparams
-# parser = argparse.ArgumentParser(description='Test for argparse')
-# parser.add_argument('--sub_lst', help='all scan sessions', nargs='+', required=True)
-# parser.add_argument('--stats', help='the base pth', type=str, default='beta')
-# parser.add_argument('--pth', help='the base pth', type=str, required=True)
-# args = parser.parse_args()
-
-class args:
-    sub_lst = ['CN046']
-    stats = 'beta'
-    pth = '/home/data/analyses/CLearn/RSA_z'
-
+## pass the hyperparams
+parser = argparse.ArgumentParser(description='Test for argparse')
+parser.add_argument('--sub_lst', help='all scan sessions', nargs='+', required=True)
+parser.add_argument('--stats', help='the base pth', type=str, default='beta')
+parser.add_argument('--pth', help='the base pth', type=str, required=True)
+args = parser.parse_args()
 
 tqdm_bar_format="{l_bar}{bar:30} {percentage:3.0f}%|{n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}"
 
@@ -28,7 +22,7 @@ for sub_id in tqdm(args.sub_lst, desc=f"Acquiring {args.stats}".rjust(15),
 
     # get the name for the output file 
     beta_name = f'{args.pth}/m2_betas_and_ts/{sub_id}.fmri_volume_{args.stats}.pkl'
-    if os.path.exists(beta_name): 
+    if not os.path.exists(beta_name): 
 
         # Find all files containing sub_id in the input path
         flst = ['.'.join(f.split('.')[:-1]) for f in os.listdir(f'{args.pth}/m1_first_lvl') if sub_id in f]
@@ -45,12 +39,13 @@ for sub_id in tqdm(args.sub_lst, desc=f"Acquiring {args.stats}".rjust(15),
                 process = subprocess.run(inlines)
                 # convert to csv adta 
                 result_data = nib.load(oname).get_fdata().copy()
-                n_stats = result_data.shape[-1]
+                n_stats = result_data.shape[-1]-2
                 # start from the 5th column
                 # 1st column is R^2
                 # 2nd column is Fstats
                 # 3rd column is beta0
                 # 4th column is t0
+                # 5th column is beta1
                 start_idx = 4 if args.stats=='beta' else 5 
                 ind = np.arange(start_idx, n_stats, 2).tolist()
                 stats_lst.append(result_data[..., ind].copy())
@@ -61,22 +56,3 @@ for sub_id in tqdm(args.sub_lst, desc=f"Acquiring {args.stats}".rjust(15),
         stats = np.transpose(stats, (4, 3, 0, 1, 2))
         print(f'\t{sub_id} stats shape: {stats.shape}')
         with open(beta_name, 'wb')as handle: pickle.dump(stats, handle)
-
-
-
-
-        
-
-           
-
-
-
-
-        
-        
-
-
-
-    
-
-    
